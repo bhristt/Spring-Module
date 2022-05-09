@@ -45,6 +45,7 @@ Spring.StartTick               --> the point in time at which the Spring was cre
 
 Spring:Start()                                --> starts the spring if the spring has not already started
 Spring:SetExternalForce(number Force)         --> sets the external force of the spring to the given force
+Spring:AddVelocity(number Velocity)           --> adds the given velocity to the spring
 Spring:CalcOffset()                           --> returns the offset of the spring at the instant in time this function is called
 Spring:CalcVelocity()                         --> returns the velocity of the spring at the instant in time this function is called
 Spring:CalcAcceleration()                     --> returns the acceleration of the spring at the instant in time this function is called
@@ -92,19 +93,19 @@ SpringFunctions.__index = SpringFunctions;
 -- the spring object constructor
 -- m: mass of object, a: damping constant, k: spring constant, y0: initial offset, v0: initial velocity, f: external force
 function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f: number?): SpringObject -- using a second order differential equation
-	
+
 	-- make sure values are valid
 	assert(m > 0, "Mass for spring system cannot be less than or equal to 0");
 	assert(k > 0, "Spring constant for spring system cannot be less than or equal to 0");
-	
+
 	-- double check to make sure y0, v0 and f are numbers and not nil values
 	local y0 = y0 or 0;
 	local v0 = v0 or 0;
 	local f = f or 0;
-	
+
 	-- new spring object
 	local _Spring: Eq.Spring = {
-		
+
 		-- set initial stuff
 		Mass = m;
 		Damping = a;
@@ -112,7 +113,7 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 		InitialOffset = y0 - f/k;
 		InitialVelocity = v0;
 		ExternalForce = f;
-		
+
 		-- set changing stuff
 		Offset = 0;
 		Velocity = 0;
@@ -124,10 +125,10 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 		Enabled = false;
 		StartTick = 0;
 	};
-	
+
 	-- adds the SpringFunctions to the spring object and returns the spring
 	setmetatable(_Spring, SpringFunctions);
-	
+
 	-- starts the spring and returns the spring object
 	_Spring:Start(); -- _Spring and SpringObject are the same thing except SpringObject has a metatable, and lua can't see metatable functions :C
 	return _Spring;
@@ -137,7 +138,7 @@ end
 -- starts the spring
 function SpringFunctions:Start()
 	local self: Eq.Spring = self;
-	
+
 	-- check to see if there is already a connection
 	if self.Connection or self.Enabled then
 		return;
@@ -145,7 +146,7 @@ function SpringFunctions:Start()
 
 	-- update the F of the spring
 	self.F = Eq.F(self);
-	
+
 	-- function used to update the spring using the DifEqFunctionTable
 	local function Update(F: Eq.DifEqFunctionTable, dt: number)
 		self.Offset = F.Offset(self.TimeElapsed);
@@ -153,7 +154,7 @@ function SpringFunctions:Start()
 		self.Acceleration =  F.Acceleration(self.TimeElapsed);
 		self.TimeElapsed += dt;
 	end
-	
+
 	-- creates the connection to RunService for the spring
 	if self.CreateConnection then
 		self.Connection = RunService:IsServer() and RunService.Stepped:Connect(function(tt: number, dt: number)
@@ -170,15 +171,27 @@ end
 
 
 -- sets the external force of the spring object to the given force
-function SpringFunctions:SetExternalForce(Force: number)
+function SpringFunctions:SetExternalForce(force: number)
 	local self: Eq.Spring = self;
-	
+
 	-- set properties
-	self.ExternalForce = Force;
-	self.InitialOffset =  self.Offset - Force / self.Constant;
+	self.ExternalForce = force;
+	self.InitialOffset =  self.Offset - force / self.Constant;
 	self.InitialVelocity =  self.Velocity
 	self.F = Eq.F(self);
 	self.TimeElapsed = 0;
+end
+
+
+-- adds the given velocity to the spring object
+function SpringFunctions:AddVelocity(velocity: number)
+	local self: Eq.Spring = self;
+	
+	-- set properties and restart spring
+	self:Stop();
+	self.InitialOffset = self.Offset;
+	self.InitialVelocity = self.Velocity + velocity;
+	self:Start();
 end
 
 
@@ -193,7 +206,8 @@ function SpringFunctions:CalcOffset(): number
 
 	-- calculate offset
 	local t: number = tick() - self.StartTick;
-	local offset: number = self.F.Offset(t);
+	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+	local offset: number = F.Offset(t);
 
 	-- return offset
 	return offset;
@@ -211,7 +225,8 @@ function SpringFunctions:CalcVelocity(): number
 
 	-- calculate velocity
 	local t: number = tick() - self.StartTick;
-	local velocity: number = self.F.Velocity(t);
+	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+	local velocity: number = F.Velocity(t);
 
 	-- return velocity
 	return velocity;
@@ -229,7 +244,8 @@ function SpringFunctions:CalcAcceleration(): number
 
 	-- calculate acceleration
 	local t: number = tick() - self.StartTick
-	local acceleration: number = self.F.Acceleration(t)
+	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+	local acceleration: number = F.Acceleration(t);
 
 	-- return acceleration
 	return acceleration;
@@ -239,14 +255,13 @@ end
 -- stops the spring and its connection to the RunService
 function SpringFunctions:Stop()
 	local self: Eq.Spring = self;
-	
+
 	-- check if a connection exists
-	if not self.Connection then
-		return;
+	if self.Connection then
+		(self.Connection:: RBXScriptConnection):Disconnect();
+		self.Connection = nil;
 	end
 	
-	(self.Connection:: RBXScriptConnection):Disconnect();
-	self.Connection = nil;
 	self.Enabled = false;
 end
 

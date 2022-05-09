@@ -21,6 +21,7 @@ export type Spring = {
 
 	-- cache values
 	StartTick: number;
+	Enabled: boolean;
 	CreateConnection: boolean;
 
 	-- function and connection
@@ -30,7 +31,7 @@ export type Spring = {
 
 
 export type DifEqFunctionTable = {
-	
+
 	-- contains functions for offset, velocity, and acceleration
 	Offset: (number) -> number;
 	Velocity: (number) -> number;
@@ -49,7 +50,7 @@ function OverDamping(m: number, a: number, k: number, y0: number, v0: number, f:
 	local r1, r2 = d * w1, d * w2;
 	local c1, c2 = ((r2 * y0) - v0) / (r2 - r1), ((r1 * y0) - v0) / (r1 - r2);
 	local yp = f / k;
-	
+
 	return {
 		Offset = function(t)
 			return c1 * math.exp(r1 * t) + c2 * math.exp(r2 * t) + yp;
@@ -68,7 +69,7 @@ function CriticalDamping(m: number, a: number, k: number, y0: number, v0: number
 	local r = -a / (2 * m);
 	local c1, c2 = y0, v0 - r * y0
 	local yp = f / k;
-	
+
 	return {
 		Offset = function(t)
 			return math.exp(r * t) * (c1 + c2 * t) + yp;
@@ -89,7 +90,7 @@ function UnderDamping(m: number, a: number, k: number, y0: number, v0: number, f
 	local s = math.sqrt(-delta);
 	local c1, c2 = y0, (v0 - (r * y0)) / s;
 	local yp = f / k;
-	
+
 	return {
 		Offset = function(t)
 			return math.exp(r * t) * (c1 * math.cos(s * t) + c2 * math.sin(s * t)) + yp;
@@ -108,7 +109,7 @@ function Functions.F(Spring: Spring): DifEqFunctionTable
 	local y0, v0, f = Spring.InitialOffset, Spring.InitialVelocity, Spring.ExternalForce;
 	local m, a, k = Spring.Mass, Spring.Damping, Spring.Constant;
 	local delta = ((a * a) / (m * m)) - (4 * k / m);
-	
+
 	if delta > 0 then
 		return OverDamping(m, a, k, y0, v0, f);
 	elseif delta == 0 then
