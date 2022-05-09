@@ -35,6 +35,9 @@ Spring.Offset                  --> the current offset of the spring
 Spring.Velocity                --> the current velocity of the spring
 Spring.Acceleration            --> the current acceleration of the spring
 Spring.TimeElapsed             --> the time elapsed since the creation of the spring
+Spring.Enabled                 --> whether the spring is currently updating its values
+Spring.CreateConnection        --> whether the spring should create a connection to RunService
+Spring.StartTick               --> the point in time at which the Spring was created
 
 **Spring properties are read only, trying to write the properties will not do anything and they will revert back to their respective values**
 
@@ -42,6 +45,9 @@ Spring.TimeElapsed             --> the time elapsed since the creation of the sp
 
 Spring:Start()                                --> starts the spring if the spring has not already started
 Spring:SetExternalForce(number Force)         --> sets the external force of the spring to the given force
+Spring:CalcOffset()                           --> returns the offset of the spring at the instant in time this function is called
+Spring:CalcVelocity()                         --> returns the velocity of the spring at the instant in time this function is called
+Spring:CalcAcceleration()                     --> returns the acceleration of the spring at the instant in time this function is called
 Spring:Stop()                                 --> stops the spring and disconnects all connections tied to it
 
 [Internal Functions]:
