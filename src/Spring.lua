@@ -44,6 +44,12 @@ Spring:Start()                                --> starts the spring if the sprin
 Spring:SetExternalForce(number Force)         --> sets the external force of the spring to the given force
 Spring:Stop()                                 --> stops the spring and disconnects all connections tied to it
 
+[Internal Functions]:
+
+Spring.F.Offset(number t)                  --> returns the offset of the Spring at the given time t
+Spring.F.Velocity(number t)                --> returns the velocity of the spring at the given time t
+Spring.F.Acceleration(number t)            --> returns the acceleration of the spring at the given time t
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ** If you are looking for a more in depth version of the usage of this module, go to the devforum! The link is below **
