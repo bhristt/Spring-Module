@@ -1,0 +1,9 @@
+{
+  "name": "Spring-Module",
+  "tree": {
+    "$path": "src/Spring.lua",
+    "Eq": {
+      "$path": "src/Eq.lua"
+    }
+  }
+}
