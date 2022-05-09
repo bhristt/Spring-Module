@@ -1,5 +1,5 @@
 -- created by bhristt (June 3rd 2021)
--- updated (September 20th 2021)
+-- updated (May 9th 2022)
 --!strict
 
 
@@ -112,10 +112,12 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 		Velocity = 0;
 		Acceleration = 0;
 		TimeElapsed = 0;
+
+		-- set cache stuff
+		CreateConnection = true;
+		Enabled = false;
+		StartTick = 0;
 	};
-	
-	-- sets the important stuff of the spring
-	_Spring.F = Eq.F(_Spring);
 	
 	-- adds the SpringFunctions to the spring object and returns the spring
 	setmetatable(_Spring, SpringFunctions);
@@ -131,9 +133,12 @@ function SpringFunctions:Start()
 	local self: Eq.Spring = self;
 	
 	-- check to see if there is already a connection
-	if self.Connection then
+	if self.Connection or self.Enabled then
 		return;
 	end
+
+	-- update the F of the spring
+	self.F = Eq.F(self);
 	
 	-- function used to update the spring using the DifEqFunctionTable
 	local function Update(F: Eq.DifEqFunctionTable, dt: number)
@@ -144,11 +149,17 @@ function SpringFunctions:Start()
 	end
 	
 	-- creates the connection to RunService for the spring
-	self.Connection = RunService:IsServer() and RunService.Stepped:Connect(function(tt: number, dt: number)
-		Update(self.F:: Eq.DifEqFunctionTable, dt);
-	end) or RunService.RenderStepped:Connect(function(dt: number)
-		Update(self.F:: Eq.DifEqFunctionTable, dt);
-	end);
+	if self.CreateConnection then
+		self.Connection = RunService:IsServer() and RunService.Stepped:Connect(function(tt: number, dt: number)
+			Update(self.F:: Eq.DifEqFunctionTable, dt);
+		end) or RunService.RenderStepped:Connect(function(dt: number)
+			Update(self.F:: Eq.DifEqFunctionTable, dt);
+		end);
+	end
+
+	-- set the start tick to the current tick and set enabled
+	self.StartTick = tick();
+	self.Enabled = true;
 end
 
 
@@ -165,6 +176,60 @@ function SpringFunctions:SetExternalForce(Force: number)
 end
 
 
+-- returns a value for the offset at the current time relative to the start time of the spring
+function SpringFunctions:CalcOffset(): number
+	local self: Eq.Spring = self;
+
+	-- check to make sure that the spring is enabled
+	if not self.Enabled then
+		return self.Offset;
+	end
+
+	-- calculate offset
+	local t: number = tick() - self.StartTick;
+	local offset: number = self.F.Offset(t);
+
+	-- return offset
+	return offset;
+end
+
+
+-- returns a value for the velocity at the current time relative to the start time of the spring
+function SpringFunctions:CalcVelocity(): number
+	local self: Eq.Spring = self;
+
+	-- check to make sure that the spring is enabled
+	if not self.Enabled then
+		return self.Velocity;
+	end
+
+	-- calculate velocity
+	local t: number = tick() - self.StartTick;
+	local velocity: number = self.F.Velocity(t);
+
+	-- return velocity
+	return velocity;
+end
+
+
+-- returns a value for the acceleration at the current time relative to the start time of the spring
+function SpringFunctions:CalcAcceleration(): number
+	local self: Eq.Spring = self;
+
+	-- check to make sure that the spring is enabled
+	if not self.Enabled then
+		return self.Acceleration
+	end
+
+	-- calculate acceleration
+	local t: number = tick() - self.StartTick
+	local acceleration: number = self.F.Acceleration(t)
+
+	-- return acceleration
+	return acceleration;
+end
+
+
 -- stops the spring and its connection to the RunService
 function SpringFunctions:Stop()
 	local self: Eq.Spring = self;
@@ -176,6 +241,7 @@ function SpringFunctions:Stop()
 	
 	(self.Connection:: RBXScriptConnection):Disconnect();
 	self.Connection = nil;
+	self.Enabled = false;
 end
 
 

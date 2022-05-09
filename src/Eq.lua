@@ -19,6 +19,10 @@ export type Spring = {
 	Acceleration: number;
 	TimeElapsed: number;
 
+	-- cache values
+	StartTick: number;
+	CreateConnection: boolean;
+
 	-- function and connection
 	F: DifEqFunctionTable | nil;
 	Connection: RBXScriptConnection | nil;
