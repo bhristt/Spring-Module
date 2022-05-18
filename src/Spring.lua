@@ -138,7 +138,7 @@ end
 
 -- starts the spring
 function SpringFunctions:Start()
-	local self: Eq.Spring & SpringObject = self;
+	local self: SpringObject = self;
 
 	-- check to see if there is already a connection
 	if self.Connection or self.Enabled then
@@ -173,7 +173,7 @@ end
 
 -- sets the external force of the spring object to the given force
 function SpringFunctions:SetExternalForce(force: number)
-	local self: Eq.Spring & SpringObject = self;
+	local self: SpringObject = self;
 	
 	-- set properties
 	self.ExternalForce = force;
@@ -198,7 +198,7 @@ end
 
 -- adds the given velocity to the spring object
 function SpringFunctions:AddVelocity(velocity: number)
-	local self: Eq.Spring & SpringObject = self;
+	local self: SpringObject = self;
 	
 	-- set properties and restart spring
 	self:Stop();
@@ -210,7 +210,7 @@ end
 
 -- returns a value for the offset at the current time relative to the start time of the spring
 function SpringFunctions:CalcOffset(): number
-	local self: Eq.Spring = self;
+	local self: SpringObject = self;
 
 	-- check to make sure that the spring is enabled
 	if not self.Enabled then
@@ -229,7 +229,7 @@ end
 
 -- returns a value for the velocity at the current time relative to the start time of the spring
 function SpringFunctions:CalcVelocity(): number
-	local self: Eq.Spring = self;
+	local self: SpringObject = self;
 
 	-- check to make sure that the spring is enabled
 	if not self.Enabled then
@@ -248,7 +248,7 @@ end
 
 -- returns a value for the acceleration at the current time relative to the start time of the spring
 function SpringFunctions:CalcAcceleration(): number
-	local self: Eq.Spring = self;
+	local self: SpringObject = self;
 
 	-- check to make sure that the spring is enabled
 	if not self.Enabled then
@@ -267,14 +267,14 @@ end
 
 -- stops the spring and its connection to the RunService
 function SpringFunctions:Stop()
-	local self: Eq.Spring = self;
+	local self: SpringObject = self;
 
 	-- check if a connection exists
 	if self.Connection then
 		(self.Connection:: RBXScriptConnection):Disconnect();
 		self.Connection = nil;
 	end
-
+	
 	self.Enabled = false;
 end
 
@@ -283,5 +283,5 @@ end
 
 
 -- create a type for the spring object :0
-type SpringObject = typeof(Spring.new(1, 0, 1));
+type SpringObject = typeof(Spring.new(1, 0, 1)) & Eq.Spring;
 return Spring;
