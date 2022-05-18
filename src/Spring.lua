@@ -45,6 +45,7 @@ Spring.StartTick               --> the point in time at which the Spring was cre
 
 Spring:Start()                                --> starts the spring if the spring has not already started
 Spring:SetExternalForce(number Force)         --> sets the external force of the spring to the given force
+Spring:AddOffset(number Offset)               --> adds the given offset to the spring
 Spring:AddVelocity(number Velocity)           --> adds the given velocity to the spring
 Spring:CalcOffset()                           --> returns the offset of the spring at the instant in time this function is called
 Spring:CalcVelocity()                         --> returns the velocity of the spring at the instant in time this function is called
@@ -130,14 +131,14 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 	setmetatable(_Spring, SpringFunctions);
 
 	-- starts the spring and returns the spring object
-	_Spring:Start(); -- _Spring and SpringObject are the same thing except SpringObject has a metatable, and lua can't see metatable functions :C
+	(_Spring:: SpringObject):Start(); -- _Spring and SpringObject are the same thing except SpringObject has a metatable, and lua can't see metatable functions :C
 	return _Spring;
 end
 
 
 -- starts the spring
 function SpringFunctions:Start()
-	local self: Eq.Spring = self;
+	local self: Eq.Spring & SpringObject = self;
 
 	-- check to see if there is already a connection
 	if self.Connection or self.Enabled then
@@ -172,25 +173,37 @@ end
 
 -- sets the external force of the spring object to the given force
 function SpringFunctions:SetExternalForce(force: number)
-	local self: Eq.Spring = self;
-
+	local self: Eq.Spring & SpringObject = self;
+	
 	-- set properties
 	self.ExternalForce = force;
-	self.InitialOffset =  self.Offset - force / self.Constant;
-	self.InitialVelocity =  self.Velocity
+	self.InitialOffset =  self:CalcOffset() - force / self.Constant;
+	self.InitialVelocity =  self:CalcVelocity()
 	self.F = Eq.F(self);
 	self.TimeElapsed = 0;
 end
 
 
--- adds the given velocity to the spring object
-function SpringFunctions:AddVelocity(velocity: number)
-	local self: Eq.Spring = self;
+-- adds the given offset to the spring object
+function SpringFunctions:AddOffset(offset: number)
+	local self: Eq.Spring & SpringObject = self;
 	
 	-- set properties and restart spring
 	self:Stop();
-	self.InitialOffset = self.Offset;
-	self.InitialVelocity = self.Velocity + velocity;
+	self.InitialOffset = self:CalcOffset() + offset
+	self.InitialVelocity = self:CalcVelocity()
+	self:Start();
+end
+
+
+-- adds the given velocity to the spring object
+function SpringFunctions:AddVelocity(velocity: number)
+	local self: Eq.Spring & SpringObject = self;
+	
+	-- set properties and restart spring
+	self:Stop();
+	self.InitialOffset = self:CalcOffset();
+	self.InitialVelocity = self:CalcVelocity() + velocity;
 	self:Start();
 end
 
@@ -261,7 +274,7 @@ function SpringFunctions:Stop()
 		(self.Connection:: RBXScriptConnection):Disconnect();
 		self.Connection = nil;
 	end
-	
+
 	self.Enabled = false;
 end
 
