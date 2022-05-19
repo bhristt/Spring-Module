@@ -34,23 +34,19 @@ Spring.ExternalForce           --> the external force acting on the spring
 Spring.Offset                  --> the current offset of the spring
 Spring.Velocity                --> the current velocity of the spring
 Spring.Acceleration            --> the current acceleration of the spring
-Spring.TimeElapsed             --> the time elapsed since the creation of the spring
-Spring.Enabled                 --> whether the spring is currently updating its values
-Spring.CreateConnection        --> whether the spring should create a connection to RunService
+
+[Static Properties]:
+
 Spring.StartTick               --> the point in time at which the Spring was created
 
 **Spring properties are read only, trying to write the properties will not do anything and they will revert back to their respective values**
 
 [Functions]:
 
-Spring:Start()                                --> starts the spring if the spring has not already started
+Spring:Reset()                                --> resets the spring and creates a new DifEqFunctionTable
 Spring:SetExternalForce(number Force)         --> sets the external force of the spring to the given force
 Spring:AddOffset(number Offset)               --> adds the given offset to the spring
 Spring:AddVelocity(number Velocity)           --> adds the given velocity to the spring
-Spring:CalcOffset()                           --> returns the offset of the spring at the instant in time this function is called
-Spring:CalcVelocity()                         --> returns the velocity of the spring at the instant in time this function is called
-Spring:CalcAcceleration()                     --> returns the acceleration of the spring at the instant in time this function is called
-Spring:Stop()                                 --> stops the spring and disconnects all connections tied to it
 
 [Internal Functions]:
 
@@ -80,12 +76,52 @@ local RunService = game:GetService("RunService");
 local Eq = require(script.Eq);
 
 
+-- Constants --
+
+
+local SPRING_PROPERTIES = {
+	OFFSET = "Offset",
+	VELOCITY = "Velocity",
+	ACCELERATION = "Acceleration",
+}
+
+
 -- Class -- 
 
 
 local Spring = {};
 local SpringFunctions = {};
-SpringFunctions.__index = SpringFunctions;
+SpringFunctions.__index = function(self: SpringObject, index: any): any
+	local INDEX_HANDLERS = {
+		[SPRING_PROPERTIES.OFFSET] = function()
+			local t: number = tick() - self.StartTick;
+			local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+			local offset: number = F.Offset(t);
+			return offset
+		end,
+		[SPRING_PROPERTIES.VELOCITY] = function()
+			local t: number = tick() - self.StartTick;
+			local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+			local velocity: number = F.Velocity(t);
+			return velocity
+		end,
+		[SPRING_PROPERTIES.ACCELERATION] = function()
+			local t: number = tick() - self.StartTick;
+			local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
+			local acceleration: number = F.Acceleration(t);
+			return acceleration
+		end,
+	}
+	local rawValue = rawget(self, index)
+	if rawValue ~= nil then
+		return rawValue
+	end
+	local indexHandler = INDEX_HANDLERS[index]
+	if indexHandler ~= nil then
+		return indexHandler()
+	end
+	return SpringFunctions[index]
+end;
 
 
 -- Functions --
@@ -115,15 +151,7 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 		InitialVelocity = v0;
 		ExternalForce = f;
 
-		-- set changing stuff
-		Offset = 0;
-		Velocity = 0;
-		Acceleration = 0;
-		TimeElapsed = 0;
-
 		-- set cache stuff
-		CreateConnection = true;
-		Enabled = false;
 		StartTick = 0;
 	};
 
@@ -131,43 +159,20 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 	setmetatable(_Spring, SpringFunctions);
 
 	-- starts the spring and returns the spring object
-	(_Spring:: SpringObject):Start(); -- _Spring and SpringObject are the same thing except SpringObject has a metatable, and lua can't see metatable functions :C
+	(_Spring:: SpringObject):Reset(); -- _Spring and SpringObject are the same thing except SpringObject has a metatable, and lua can't see metatable functions :C
 	return _Spring;
 end
 
 
 -- starts the spring
-function SpringFunctions:Start()
+function SpringFunctions:Reset()
 	local self: SpringObject = self;
-
-	-- check to see if there is already a connection
-	if self.Connection or self.Enabled then
-		return;
-	end
 
 	-- update the F of the spring
 	self.F = Eq.F(self);
 
-	-- function used to update the spring using the DifEqFunctionTable
-	local function Update(F: Eq.DifEqFunctionTable, dt: number)
-		self.Offset = F.Offset(self.TimeElapsed);
-		self.Velocity =  F.Velocity(self.TimeElapsed);
-		self.Acceleration =  F.Acceleration(self.TimeElapsed);
-		self.TimeElapsed += dt;
-	end
-
-	-- creates the connection to RunService for the spring
-	if self.CreateConnection then
-		self.Connection = RunService:IsServer() and RunService.Stepped:Connect(function(tt: number, dt: number)
-			Update(self.F:: Eq.DifEqFunctionTable, dt);
-		end) or RunService.RenderStepped:Connect(function(dt: number)
-			Update(self.F:: Eq.DifEqFunctionTable, dt);
-		end);
-	end
-
 	-- set the start tick to the current tick and set enabled
 	self.StartTick = tick();
-	self.Enabled = true;
 end
 
 
@@ -177,10 +182,11 @@ function SpringFunctions:SetExternalForce(force: number)
 	
 	-- set properties
 	self.ExternalForce = force;
-	self.InitialOffset =  self:CalcOffset() - force / self.Constant;
-	self.InitialVelocity =  self:CalcVelocity()
-	self.F = Eq.F(self);
-	self.TimeElapsed = 0;
+	self.InitialOffset =  self.Offset - force / self.Constant;
+	self.InitialVelocity =  self.Velocity
+	
+	-- reset spring
+	self:Reset()
 end
 
 
@@ -189,10 +195,9 @@ function SpringFunctions:AddOffset(offset: number)
 	local self: Eq.Spring & SpringObject = self;
 	
 	-- set properties and restart spring
-	self:Stop();
-	self.InitialOffset = self:CalcOffset() + offset
-	self.InitialVelocity = self:CalcVelocity()
-	self:Start();
+	self.InitialOffset = self.Offset + offset
+	self.InitialVelocity = self.Velocity
+	self:Reset();
 end
 
 
@@ -201,81 +206,9 @@ function SpringFunctions:AddVelocity(velocity: number)
 	local self: SpringObject = self;
 	
 	-- set properties and restart spring
-	self:Stop();
-	self.InitialOffset = self:CalcOffset();
-	self.InitialVelocity = self:CalcVelocity() + velocity;
-	self:Start();
-end
-
-
--- returns a value for the offset at the current time relative to the start time of the spring
-function SpringFunctions:CalcOffset(): number
-	local self: SpringObject = self;
-
-	-- check to make sure that the spring is enabled
-	if not self.Enabled then
-		return self.Offset;
-	end
-
-	-- calculate offset
-	local t: number = tick() - self.StartTick;
-	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
-	local offset: number = F.Offset(t);
-
-	-- return offset
-	return offset;
-end
-
-
--- returns a value for the velocity at the current time relative to the start time of the spring
-function SpringFunctions:CalcVelocity(): number
-	local self: SpringObject = self;
-
-	-- check to make sure that the spring is enabled
-	if not self.Enabled then
-		return self.Velocity;
-	end
-
-	-- calculate velocity
-	local t: number = tick() - self.StartTick;
-	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
-	local velocity: number = F.Velocity(t);
-
-	-- return velocity
-	return velocity;
-end
-
-
--- returns a value for the acceleration at the current time relative to the start time of the spring
-function SpringFunctions:CalcAcceleration(): number
-	local self: SpringObject = self;
-
-	-- check to make sure that the spring is enabled
-	if not self.Enabled then
-		return self.Acceleration
-	end
-
-	-- calculate acceleration
-	local t: number = tick() - self.StartTick
-	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
-	local acceleration: number = F.Acceleration(t);
-
-	-- return acceleration
-	return acceleration;
-end
-
-
--- stops the spring and its connection to the RunService
-function SpringFunctions:Stop()
-	local self: SpringObject = self;
-
-	-- check if a connection exists
-	if self.Connection then
-		(self.Connection:: RBXScriptConnection):Disconnect();
-		self.Connection = nil;
-	end
-	
-	self.Enabled = false;
+	self.InitialOffset = self.Offset;
+	self.InitialVelocity = self.Velocity + velocity;
+	self:Reset();
 end
 
 
