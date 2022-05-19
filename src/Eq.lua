@@ -1,6 +1,6 @@
 -- created by bhristt (June 3rd 2021)
 -- updated (September 12th 2021)
---!strict
+--!nocheck
 
 
 export type Spring = {
@@ -13,20 +13,11 @@ export type Spring = {
 	InitialVelocity: number;
 	ExternalForce: number;
 
-	-- changing values
-	Offset: number;
-	Velocity: number;
-	Acceleration: number;
-	TimeElapsed: number;
-
 	-- cache values
 	StartTick: number;
-	Enabled: boolean;
-	CreateConnection: boolean;
 
 	-- function and connection
 	F: DifEqFunctionTable | nil;
-	Connection: RBXScriptConnection | nil;
 };
 
 
