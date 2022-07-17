@@ -12,6 +12,7 @@ export type Spring = {
 	InitialOffset: number;
 	InitialVelocity: number;
 	ExternalForce: number;
+	AdvancedObjectStringEnabled: boolean,
 
 	-- cache values
 	StartTick: number;

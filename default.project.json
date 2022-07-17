@@ -1,9 +1,15 @@
 {
-  "name": "Spring-Module",
-  "tree": {
-    "$path": "src/Spring.lua",
-    "Eq": {
-      "$path": "src/Eq.lua"
+    "name": "Spring-Module",
+    "tree": {
+        "$className": "DataModel",
+        "Workspace": {
+            "$className": "Workspace",
+            "Spring": {
+                "$path": "src/Spring.lua",
+                "Eq": {
+                    "$path": "src/Eq.lua"
+                }
+            }
+        }
     }
-  }
 }
