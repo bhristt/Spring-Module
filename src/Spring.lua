@@ -123,6 +123,8 @@ SPRING PROPERTIES ADVANCED:
 
 local Spring = {};
 local SpringFunctions = {};
+
+
 SpringFunctions.__index = function(self: SpringObject, index: any): any
 	local INDEX_HANDLERS = {
 		[SPRING_PROPERTIES.OFFSET] = function()
@@ -154,6 +156,8 @@ SpringFunctions.__index = function(self: SpringObject, index: any): any
 	end
 	return SpringFunctions[index];
 end
+
+
 SpringFunctions.__tostring = function(self: SpringObject): string
 	local t: number = tick() - self.StartTick;
 	local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
