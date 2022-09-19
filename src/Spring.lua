@@ -46,6 +46,7 @@ Spring.AdvancedObjectStringEnabled       --> changes how the spring prints      
 
 Spring:Reset(): void                                --> resets the spring and creates a new DifEqFunctionTable
 Spring:SetExternalForce(number Force): void         --> sets the external force of the spring to the given force
+Spring:SetGoal(number Goal): void                   --> sets the external force of the sping such that the limit of the spring as t approaches infinity is the given number
 Spring:AddOffset(number Offset): void               --> adds the given offset to the spring
 Spring:AddVelocity(number Velocity): void           --> adds the given velocity to the spring
 Spring:Print(): void                                --> prints the spring properties
@@ -252,6 +253,21 @@ function SpringFunctions:SetExternalForce(force: number)
 	self.ExternalForce = force;
 	self.InitialOffset =  self.Offset - force / self.Constant;
 	self.InitialVelocity =  self.Velocity;
+
+	-- reset spring
+	self:Reset();
+end
+
+
+-- sets the external force of the spring object such that
+-- the spring object eventually reaches this number
+function SpringFunctions:SetGoal(goal: number)
+	local self: SpringObject = self;
+
+	-- set properties
+	self.ExternalForce = goal * self.Constant;
+	self.InitialOffset = self.Offset - goal;
+	self.InitialVelocity = self.Velocity;
 
 	-- reset spring
 	self:Reset();

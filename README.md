@@ -17,6 +17,7 @@ local Spring = require(script:WaitForChild("Spring"))
 --// only the first 3 parameters are required to make a
 local SpringObject = Spring.new(1, 0, 1)
 ```
+Desmos Spring Graph: https://www.desmos.com/calculator/dqo46jlr7u
 
 ## Properties
 
