@@ -69,7 +69,10 @@ Whether to use the basic string or advanced string for the Spring Object when **
 
 ## Functions
 
-The Spring Object contains the following functions
+The Spring Object contains the following functions:
+
+---
+
 
 > [void] **SpringObject.Reset()**
 
@@ -78,6 +81,10 @@ Resets the Spring and creates a new **DifEqFunctionTable** for the Spring Object
 > [void] **SpringObject:SetExternalForce([number] force)**
 
 Sets the external force of the Spring Object to the given force
+
+> [void] **SpringObject:SetGoal([number] goal)**
+
+Sets the external force of the Spring Object such that the the limit of the spring as t approaches infinity is equal to the given number (same as `SpringObject:SetExternalForce(goal*SpringObject.Constant)`)
 
 > [void] **SpringObject:AddOffset([number] offset)**
 
