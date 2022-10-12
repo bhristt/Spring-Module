@@ -28,7 +28,7 @@ Spring.Constant                          --> the spring constant of the spring  
 Spring.InitialOffset                     --> the initial offset of the spring                   [number]
 Spring.InitialVelocity                   --> the initial velocity of the spring                 [number]
 Spring.ExternalForce                     --> the external force acting on the spring            [number]
-Spring.Goal                              --> the offset the spring is aiming to get to
+Spring.Goal                              --> the offset the spring is aiming to get to          [number]
 
 [Changing Properties]:
 
