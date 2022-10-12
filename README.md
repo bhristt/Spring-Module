@@ -47,6 +47,10 @@ The initial velocity of the Spring Object
 
 The external force acting on the Spring Object
 
+> [number] **SpringObject.Goal**
+
+The offset the spring is aiming to get to as time approaches infinity
+
 > [number] **SpringObject.Offset**
 
 The current offset of the Spring Object (this constantly changes)

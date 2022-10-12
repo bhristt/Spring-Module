@@ -1,5 +1,5 @@
 -- created by bhristt (June 3rd 2021)
--- updated (July 17th 2022)
+-- updated (October 12th 2022)
 --!strict
 
 
@@ -86,6 +86,7 @@ local SPRING_PROPERTIES = {
 	OFFSET = "Offset",
 	VELOCITY = "Velocity",
 	ACCELERATION = "Acceleration",
+	GOAL = "Goal",
 };
 
 
@@ -145,6 +146,11 @@ SpringFunctions.__index = function(self: SpringObject, index: any): any
 			local F: Eq.DifEqFunctionTable = self.F:: Eq.DifEqFunctionTable;
 			local acceleration: number = F.Acceleration(t);
 			return acceleration;
+		end,
+		[SPRING_PROPERTIES.GOAL] = function()
+			local externalForce = self.ExternalForce;
+			local constant = self.Constant;
+			return externalForce / constant;
 		end,
 	}
 	local rawValue = rawget(self, index);
