@@ -51,6 +51,10 @@ The external force acting on the Spring Object
 
 The offset the spring is aiming to get to as time approaches infinity
 
+> [number] **SpringObject.Frequency**
+
+The frequency of the oscillation of the Spring Object
+
 > [number] **SpringObject.Offset**
 
 The current offset of the Spring Object (this constantly changes)
@@ -90,9 +94,25 @@ Sets the external force of the Spring Object to the given force
 
 Sets the external force of the Spring Object such that the the limit of the spring as t approaches infinity is equal to the given number (same as `SpringObject:SetExternalForce(goal*SpringObject.Constant)`)
 
+> [void] **SpringObject:SetFrequency([number] frequency)**
+
+Sets the frequency of the Spring Object to the given frequency. This overrides the spring constant of the object so that the frequency matches the given frequency
+
+> [void] **SpringObject:SnapToCriticalDamping()**
+
+Snaps the Spring Object to critical damping by changing the damping of the object.
+
+> [void] **SpringObject:SetOffset([number] offset, [boolean?] zeroVelocity)**
+
+Sets the offset of the Spring Object to the given offset. Sets velocity to 0 if zeroVelocity = true. `zeroVelocity = false` by default
+
 > [void] **SpringObject:AddOffset([number] offset)**
 
 Adds the given offset to the Spring Object
+
+> [void] **SpringObject:SetVelocity([number] velocity)**
+
+Sets the velocity of the Spring Object to the given velocity
 
 > [void] **SpringObject:AddVelocity([number] velocity)**
 

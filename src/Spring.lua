@@ -1,5 +1,5 @@
 -- created by bhristt (June 3rd 2021)
--- updated (October 12th 2022)
+-- updated (November 9th 2023)
 --!strict
 
 
@@ -10,7 +10,8 @@ Usage:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 local SpringModule = require(script.Spring);
-local Spring = SpringModule.new(mass, dampingConstant, springConstant, initialOffset, initialVelocity, externalForce);
+local Spring = SpringModule.new(mass, dampingConstant, springConstant, initialOffset, initialVelocity, goal);
+local Spring = SpringModule.fromFrequency(mass, dampingConstant, frequency, initialOffset, intialVelocity, goal);
 
 ** You can play around with the inputs and see how the spring module's offset will change using this graph! **
 
@@ -29,6 +30,7 @@ Spring.InitialOffset                     --> the initial offset of the spring   
 Spring.InitialVelocity                   --> the initial velocity of the spring                 [number]
 Spring.ExternalForce                     --> the external force acting on the spring            [number]
 Spring.Goal                              --> the offset the spring is aiming to get to          [number]
+Spring.Frequency                         --> the frequency of the system                        [number]
 
 [Changing Properties]:
 
@@ -45,12 +47,16 @@ Spring.AdvancedObjectStringEnabled       --> changes how the spring prints      
 
 [Functions]:
 
-Spring:Reset(): void                                --> resets the spring and creates a new DifEqFunctionTable
-Spring:SetExternalForce(number Force): void         --> sets the external force of the spring to the given force
-Spring:SetGoal(number Goal): void                   --> sets the external force of the sping such that the limit of the spring as t approaches infinity is the given number
-Spring:AddOffset(number Offset): void               --> adds the given offset to the spring
-Spring:AddVelocity(number Velocity): void           --> adds the given velocity to the spring
-Spring:Print(): void                                --> prints the spring properties
+Spring:Reset(): void                                                       --> resets the spring and creates a new DifEqFunctionTable
+Spring:SetExternalForce(number Force): void                                --> sets the external force of the spring to the given force
+Spring:SetGoal(number Goal): void                                          --> sets the external force of the spring such that the limit of the spring as t approaches infinity is the given number
+Spring:SetFrequency(number Frequency): void                                --> sets the spring constant of the spring such that the frequency of the system is the given frequency
+Spring:SnapToCriticalDamping(): void                                       --> snaps the spring to the critical damping state by changing the damping
+Spring:SetOffset(number Offset, boolean? ZeroVelocity): void               --> sets the spring offset to the given offset; if zeroVelocity = true, spring velocity is set to 0; zeroVelocity = false by default
+Spring:AddOffset(number Offset): void                                      --> adds the given offset to the spring
+Spring:SetVelocity(number Velocity): void                                  --> sets the velocity of the spring to the given velocity
+Spring:AddVelocity(number Velocity): void                                  --> adds the given velocity to the spring
+Spring:Print(): void                                                       --> prints the spring properties
 
 [Internal Functions]:
 
@@ -80,14 +86,23 @@ https://devforum.roblox.com/t/physics-based-spring-module/1287742
 local Eq = require(script.Eq);
 
 
+-- Declarations --
+
+
+local sqrt = math.sqrt
+
+
 -- Constants --
 
+
+local PI = math.pi
 
 local SPRING_PROPERTIES = {
 	OFFSET = "Offset",
 	VELOCITY = "Velocity",
 	ACCELERATION = "Acceleration",
 	GOAL = "Goal",
+	FREQUENCY = "Frequency",
 };
 
 
@@ -109,7 +124,9 @@ SPRING PROPERTIES ADVANCED:
 [BASE PROPERTIES]:
 	--> MASS: %.3f
 	--> DAMPING: %.3f
-	--> SPRING CONSTANT: %.3f
+	--> STIFFNESS: %.3f
+	--> GOAL: %.3f
+	--> FREQUENCY: %.3f
 	--> INITIAL OFFSET: %.3f
 	--> INITIAL VELOCITY: %.3f
 	--> EXTERNAL FORCE: %.3f
@@ -121,7 +138,7 @@ SPRING PROPERTIES ADVANCED:
 ]];
 
 
--- Class -- 
+-- Class --
 
 
 local Spring = {};
@@ -152,6 +169,12 @@ SpringFunctions.__index = function(self: SpringObject, index: any): any
 			local externalForce = self.ExternalForce;
 			local constant = self.Constant;
 			return externalForce / constant;
+		end,
+		[SPRING_PROPERTIES.FREQUENCY] = function()
+			local damping = self.Damping;
+			local stiffness = self.Constant;
+			local mass = self.Mass;
+			return sqrt(-damping*damping + 4*stiffness/mass)/(2*PI);
 		end,
 	}
 	local rawValue = rawget(self, index);
@@ -184,6 +207,8 @@ SpringFunctions.__tostring = function(self: SpringObject): string
 			self.Mass,
 			self.Damping,
 			self.Constant,
+			self.Goal,
+			self.Frequency,
 			self.InitialOffset,
 			self.InitialVelocity,
 			self.ExternalForce,
@@ -202,27 +227,29 @@ end
 
 -- the spring object constructor
 -- m: mass of object, a: damping constant, k: spring constant, y0: initial offset, v0: initial velocity, f: external force
-function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f: number?): SpringObject -- using a second order differential equation
+function Spring.new(mass: number, damping: number, stiffness: number, y0: number?, v0: number?, goal: number?): SpringObject -- using a second order differential equation
 
 	-- make sure values are valid
-	assert(m > 0, "Mass for spring system cannot be less than or equal to 0");
-	assert(k > 0, "Spring constant for spring system cannot be less than or equal to 0");
+	assert(mass > 0, "Mass for spring system cannot be less than or equal to 0");
+	assert(stiffness > 0, "Spring constant for spring system cannot be less than or equal to 0");
 
 	-- double check to make sure y0, v0 and f are numbers and not nil values
-	local y0 = y0 or 0;
-	local v0 = v0 or 0;
-	local f = f or 0;
+	y0 = y0 or 0;
+	v0 = v0 or 0;
+	goal = goal or 0;
+
+	local extf = goal*stiffness;
 
 	-- new spring object
 	local _Spring: Eq.Spring = {
 
 		-- set initial stuff
-		Mass = m;
-		Damping = a;
-		Constant = k;
-		InitialOffset = y0 - f/k;
+		Mass = mass;
+		Damping = damping;
+		Constant = stiffness;
+		InitialOffset = y0 - goal;
 		InitialVelocity = v0;
-		ExternalForce = f;
+		ExternalForce = extf;
 
 		-- set boolean stuff
 		AdvancedObjectStringEnabled = false;
@@ -239,9 +266,47 @@ function Spring.new(m: number, a: number, k: number, y0: number?, v0: number?, f
 	return _Spring;
 end
 
+-- the spring object constructor using frequency instead of spring constant
+function Spring.fromFrequency(mass: number, damping: number, frequency: number, y0: number?, v0: number, goal: number?): SpringObject
+
+	-- make sure values are valid
+	assert(mass > 0, "Mass for spring system cannot be less than or equal to 0");
+	assert(frequency > 0, "Spring frequency for spring system cannot be less than or equal to 0");
+
+	local stiffness = 0.25*mass*(4*PI*PI*frequency*frequency + damping*damping);
+
+	y0 = y0 or 0;
+	v0 = v0 or 0;
+	goal = goal or 0;
+
+	local extf = goal*stiffness;
+
+	local _Spring: Eq.Spring = {
+
+		-- set initial stuff
+		Mass = mass;
+		Damping = damping;
+		Constant = stiffness;
+		InitialOffset = y0 - goal;
+		InitialVelocity = v0;
+		ExternalForce = extf;
+
+		--set boolean stuff
+		AdvancedObjectStringEnabled = false;
+
+		-- set cache stuff
+		StartTick = 0;
+	}
+
+	setmetatable(_Spring, SpringFunctions);
+
+	(Spring:: SpringObject):Reset();
+	return _Spring;
+end
+
 
 -- starts the spring
-function SpringFunctions:Reset()
+function SpringFunctions:Reset(): ()
 	local self: SpringObject = self;
 
 	-- update the F of the spring
@@ -253,7 +318,7 @@ end
 
 
 -- sets the external force of the spring object to the given force
-function SpringFunctions:SetExternalForce(force: number)
+function SpringFunctions:SetExternalForce(force: number): ()
 	local self: SpringObject = self;
 
 	-- set properties
@@ -268,7 +333,7 @@ end
 
 -- sets the external force of the spring object such that
 -- the spring object eventually reaches this number
-function SpringFunctions:SetGoal(goal: number)
+function SpringFunctions:SetGoal(goal: number): ()
 	local self: SpringObject = self;
 
 	-- set properties
@@ -281,19 +346,80 @@ function SpringFunctions:SetGoal(goal: number)
 end
 
 
+-- sets the stiffness (spring constant) of the spring object
+-- such that the frequency of the spring is equal to the
+-- given frequency
+function SpringFunctions:SetFrequency(frequency: number): ()
+	local self: SpringObject = self;
+
+	-- set properties
+	self.Constant = 0.25*self.Mass*(4*PI*PI*frequency*frequency + self.Damping*self.Damping);
+	self.InitialOffset = self.Offset;
+	self.InitialVelocity = self.Velocity;
+
+	-- reset spring
+	self:Reset();
+end
+
+
+-- sets the damping of the spring object such that the damping
+-- is enough to trigger critical damping; the least amount of damping
+-- a system can have before it becomes an oscillating system
+function SpringFunctions:SnapToCriticalDamping(): ()
+	local self: SpringObject = self;
+
+	-- set properties
+	self.Damping = 2*sqrt(self.Constant/self.Mass)
+	self.InitialOffset = self.Offset;
+	self.InitialVelocity = self.Velocity;
+
+	-- reset spring
+	self:Reset();
+end
+
+
+
+-- sets the offset of the spring object to the given offset
+function SpringFunctions:SetOffset(offset: number, zeroVelocity: boolean?): ()
+	local self: SpringObject = self;
+
+	-- set properties and restart spring
+	self.InitialOffset = offset - self.Goal;
+	self.InitialVelocity = zeroVelocity and 0 or self.Velocity;
+
+	-- reset spring
+	self:Reset();
+end
+
+
 -- adds the given offset to the spring object
-function SpringFunctions:AddOffset(offset: number)
-	local self: Eq.Spring & SpringObject = self;
+function SpringFunctions:AddOffset(offset: number): ()
+	local self: SpringObject = self;
 
 	-- set properties and restart spring
 	self.InitialOffset = self.Offset + offset;
 	self.InitialVelocity = self.Velocity;
+
+	-- reset spring
+	self:Reset();
+end
+
+
+-- sets the velocity of the spring object to the given velocity
+function SpringFunctions:SetVelocity(velocity: number): ()
+	local self: SpringObject = self;
+
+	-- set properties and restart spring
+	self.InitialOffset = self.Offset
+	self.InitialVelocity = velocity;
+
+	-- reset spring
 	self:Reset();
 end
 
 
 -- adds the given velocity to the spring object
-function SpringFunctions:AddVelocity(velocity: number)
+function SpringFunctions:AddVelocity(velocity: number): ()
 	local self: SpringObject = self;
 
 	-- set properties and restart spring
@@ -304,7 +430,7 @@ end
 
 
 -- prints the spring properties to the console
-function SpringFunctions:Print()
+function SpringFunctions:Print(): ()
 	local self: SpringObject = self;
 
 	-- create string of the object and print
