@@ -5,10 +5,7 @@
         "Workspace": {
             "$className": "Workspace",
             "Spring": {
-                "$path": "src/Spring.lua",
-                "Eq": {
-                    "$path": "src/Eq.lua"
-                }
+                "$path": "src/Spring"
             }
         }
     }
