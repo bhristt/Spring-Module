@@ -299,7 +299,7 @@ function Spring.fromFrequency(mass: number, damping: number, frequency: number, 
 
 	setmetatable(_Spring, SpringFunctions);
 
-	(Spring:: SpringObject):Reset();
+	(_Spring:: SpringObject):Reset();
 	return _Spring;
 end
 
