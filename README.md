@@ -8,7 +8,11 @@ The **Spring Module** is a module that allows you to create a realistic spring o
 
 To create a new SpringObject, you can use the constructor
 
-> [SpringObject] **Spring.new([number] mass, [number] damping, [number] springConstant, [number?] initOffset, [number?] initVel, [number?] externalForce)**
+> [SpringObject] **Spring.new([number] mass, [number] damping, [number] springConstant, [number?] initOffset, [number?] initVel, [number?] goal)**
+
+or, you can use this other constructor
+
+> [SpringObject] **Spring.fromFrequency([number] mass, [number] damping, [number] frequency, [number?] initOffset, [number?] initVel, [number?] goal)**
 
 Constructor use looks like:
 
