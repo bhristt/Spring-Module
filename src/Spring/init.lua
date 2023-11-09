@@ -14,7 +14,7 @@ local Spring = SpringModule.fromFrequency(mass, dampingConstant, frequency, init
 
 ** You can play around with the inputs and see how the spring module's offset will change using this graph! **
 
-https://www.desmos.com/calculator/dqo46jlr7u
+https://www.desmos.com/calculator/1lzjxyfjum
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
