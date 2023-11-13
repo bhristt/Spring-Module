@@ -25,11 +25,12 @@ Spring is an object with the following properties:
 Spring.Mass                              --> the mass acting on the spring                      [number]
 Spring.Damping                           --> the damping constant of the spring                 [number]
 Spring.Constant                          --> the spring constant of the spring                  [number]
+Spring.Frequency                         --> the frequency of the system                        [number]
+Spring.Amplitude                         --> the amplitude of the system                        [number]
 Spring.InitialOffset                     --> the initial offset of the spring                   [number]
 Spring.InitialVelocity                   --> the initial velocity of the spring                 [number]
 Spring.ExternalForce                     --> the external force acting on the spring            [number]
 Spring.Goal                              --> the offset the spring is aiming to get to          [number]
-Spring.Frequency                         --> the frequency of the system                        [number]
 
 [Changing Properties]:
 
@@ -102,6 +103,7 @@ local SPRING_PROPERTIES = {
 	ACCELERATION = "Acceleration",
 	GOAL = "Goal",
 	FREQUENCY = "Frequency",
+	AMPLITUDE = "Amplitude",
 };
 
 
@@ -124,8 +126,9 @@ SPRING PROPERTIES ADVANCED:
 	--> MASS: %.3f
 	--> DAMPING: %.3f
 	--> STIFFNESS: %.3f
-	--> GOAL: %.3f
 	--> FREQUENCY: %.3f
+	--> AMPLITUDE: %.3f
+	--> GOAL: %.3f
 	--> INITIAL OFFSET: %.3f
 	--> INITIAL VELOCITY: %.3f
 	--> EXTERNAL FORCE: %.3f
@@ -173,7 +176,19 @@ SpringFunctions.__index = function(self: SpringObject, index: any): any
 			local damping = self.Damping;
 			local stiffness = self.Constant;
 			local mass = self.Mass;
-			return sqrt(-damping*damping + 4*stiffness/mass)/(2*PI);
+			local delta = damping*damping + 4*stiffness/mass
+			if delta > 0 then
+				return sqrt(delta)/(2*PI)
+			else
+				return sqrt(-delta)/(2*PI)
+			end
+		end,
+		[SPRING_PROPERTIES.AMPLITUDE] = function()
+			local initOffset = self.InitialOffset
+			local initVelocity = self.InitialVelocity
+			local damping = self.Damping
+			local frequency = self.Frequency
+			return math.sqrt(initOffset*initOffset + ((initVelocity + 0.5*damping*initOffset)/frequency)^2)
 		end,
 	}
 	local rawValue = rawget(self, index);
@@ -206,8 +221,9 @@ SpringFunctions.__tostring = function(self: SpringObject): string
 			self.Mass,
 			self.Damping,
 			self.Constant,
-			self.Goal,
 			self.Frequency,
+			self.Amplitude,
+			self.Goal,
 			self.InitialOffset,
 			self.InitialVelocity,
 			self.ExternalForce,
@@ -367,7 +383,6 @@ function SpringFunctions:SnapToCriticalDamping(): ()
 end
 
 
-
 -- sets the offset of the spring object to the given offset
 function SpringFunctions:SetOffset(offset: number, zeroVelocity: boolean?): ()
 	-- set properties and restart spring
@@ -376,6 +391,53 @@ function SpringFunctions:SetOffset(offset: number, zeroVelocity: boolean?): ()
 
 	-- reset spring
 	self:Reset();
+end
+
+
+-- sets the offset of the spring object to the given offset
+-- unlike SpringObject:SetOffset(), this function maintains the
+-- amplitude of the spring object the same
+function SpringFunctions:SetOffsetAndMaintainAmplitude(offset: number): ()
+	-- check if offset > amplitude
+	if offset > self.Amplitude then
+		error("Offset cannot be greater than amplitude")
+	end
+
+	-- calculate
+	local a, d, f, v = self.Amplitude, self.Damping, self.Frequency, self.Velocity
+	local v0_0 = f*sqrt(a*a - offset*offset) - 0.5*d*offset
+	local v0_1 = -f*sqrt(a*a - offset*offset) - 0.5*d*offset
+
+	-- set properties
+	self.InitialOffset = offset
+	self.InitialVelocity = math.sign(v) == math.sign(v0_0) and v0_0 or v0_1
+
+	-- reset spring
+	self:Reset()
+end
+
+
+-- sets the velocity of the spring object
+-- such that the offset of the spring is
+-- equal to the given offset and the amplitude
+-- of the oscillation is equal to the given amplitude
+function SpringFunctions:SetOffsetAndAmplitude(offset: number, amplitude: number): ()
+	-- check if offset > amplitude
+	if offset > amplitude then
+		error("Offset cannot be greater than amplitude")
+	end
+
+	-- calculate
+	local d, f, v = self.Damping, self.Frequency, self.Velocity
+	local v0_0 = f*sqrt(amplitude*amplitude - offset*offset) - 0.5*d*offset
+	local v0_1 = -f*sqrt(amplitude*amplitude - offset*offset) - 0.5*d*offset
+
+	-- set properties
+	self.InitialOffset = offset
+	self.InitialVelocity = math.sign(v) == math.sign(v0_0) and v0_0 or v0_1
+
+	-- reset spring
+	self:Reset()
 end
 
 
