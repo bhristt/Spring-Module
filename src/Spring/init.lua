@@ -282,7 +282,7 @@ function Spring.new(mass: number, damping: number, stiffness: number, y0: number
 end
 
 -- the spring object constructor using frequency instead of spring constant
-function Spring.fromFrequency(mass: number, damping: number, frequency: number, y0: number?, v0: number, goal: number?): SpringObject
+function Spring.fromFrequency(mass: number, damping: number, frequency: number, y0: number?, v0: number: number?, goal: number?): SpringObject
 
 	-- make sure values are valid
 	assert(mass > 0, "Mass for spring system cannot be less than or equal to 0");
